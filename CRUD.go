@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/graphql-go/graphql"
@@ -13,19 +15,35 @@ import (
 type Media struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
-	Type string `json:"type"` //取值 Image 或 Video
+	Type string `json:"type"`
+}
+
+type User struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 var medias = []Media{
 	{
 		ID:   1,
-		Name: "Canyon Image",
+		Name: "media_canyon_tony",
 		Type: "Image",
 	},
 	{
 		ID:   2,
-		Name: "Sunset Video",
+		Name: "media_sunset_hawk",
 		Type: "Video",
+	},
+}
+
+var users = []User{
+	{
+		Username: "media_admin",
+		Password: "regex_is_bad",
+	},
+	{
+		Username: "hawk",
+		Password: "123",
 	},
 }
 
@@ -46,6 +64,23 @@ var mediaType = graphql.NewObject(
 	},
 )
 
+var userType = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "User",
+		Fields: graphql.Fields{
+			"id": &graphql.Field{
+				Type: graphql.Int,
+			},
+			"name": &graphql.Field{
+				Type: graphql.String,
+			},
+			"password": &graphql.Field{
+				Type: graphql.String,
+			},
+		},
+	},
+)
+
 var queryType = graphql.NewObject(
 	graphql.ObjectConfig{
 		Name: "Query",
@@ -57,8 +92,31 @@ var queryType = graphql.NewObject(
 					"id": &graphql.ArgumentConfig{
 						Type: graphql.Int,
 					},
+					"username": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
+					"password": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
 				},
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					username, ok := p.Args["username"].(string)
+					if !ok {
+						return nil, errors.New("username not found")
+					}
+					password, ok := p.Args["password"].(string)
+					if !ok {
+						return nil, errors.New("password not found")
+					}
+					for _, user := range users {
+						if user.Username == username {
+							re := regexp.MustCompile(password)
+							if re.Match([]byte(user.Password)) {
+								break
+							}
+							return nil, errors.New("password mismatch")
+						}
+					}
 					id, ok := p.Args["id"].(int)
 					if ok {
 						// Find product
@@ -72,13 +130,46 @@ var queryType = graphql.NewObject(
 				},
 			},
 			/* Get (read) media list
-			   http://localhost:8080/product?query={mediaList{id,name,type}}
+			   http://localhost:8080/gqlMedia?query={mediaList{id,name,type}}
 			*/
 			"mediaList": &graphql.Field{
 				Type:        graphql.NewList(mediaType),
 				Description: "Get media list",
-				Resolve: func(params graphql.ResolveParams) (interface{}, error) {
-					return medias, nil
+				Args: graphql.FieldConfigArgument{
+					"username": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
+					"password": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
+				},
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					username, ok := p.Args["username"].(string)
+					usernameRe := regexp.MustCompile(username)
+					if !ok {
+						return nil, errors.New("username not found")
+					}
+					password, ok := p.Args["password"].(string)
+					if !ok {
+						return nil, errors.New("password not found")
+					}
+					for _, user := range users {
+						if usernameRe.Match([]byte(user.Username)) {
+							passwordRe := regexp.MustCompile(password)
+							if passwordRe.Match([]byte(user.Password)) {
+								break
+							}
+							return nil, errors.New("password mismatch")
+						}
+					}
+					mediaRe := regexp.MustCompile("(.*)" + username + "(.*)")
+					var result []Media
+					for _, m := range medias {
+						if mediaRe.Match([]byte(m.Name)) {
+							result = append(result, m)
+						}
+					}
+					return result, nil
 				},
 			},
 		},
