@@ -26,20 +26,40 @@ type User struct {
 var medias = []Media{
 	{
 		ID:   1,
-		Name: "media_canyon_tony",
-		Type: "Image",
+		Name: "media_flag",
+		Type: "Look at the ldap server at port 80. Can you somehow extract the data inside it? Hint 1: the login username is autofilled for you. Hint 2: google is your best friend.",
 	},
 	{
 		ID:   2,
 		Name: "media_sunset_hawk",
 		Type: "Video",
 	},
+	{
+		ID:   3,
+		Name: "media_admin_canyon",
+		Type: "Video",
+	},
+	{
+		ID:   4,
+		Name: "media_admin_not_flag",
+		Type: "Video",
+	},
+	{
+		ID:   5,
+		Name: "hello_media_admin",
+		Type: "Video",
+	},
+	{
+		ID:   5,
+		Name: "hawk's workout",
+		Type: "Image",
+	},
 }
 
 var users = []User{
 	{
 		Username: "media_admin",
-		Password: "regex_is_bad",
+		Password: "bad_matching_practice",
 	},
 	{
 		Username: "hawk",
@@ -130,7 +150,7 @@ var queryType = graphql.NewObject(
 				},
 			},
 			/* Get (read) media list
-			   http://localhost:8080/gqlMedia?query={mediaList{id,name,type}}
+			   http://localhost:8080/gqlMedia?query={mediaList(username:"hawk",password:"123"){id,name,type}}
 			*/
 			"mediaList": &graphql.Field{
 				Type:        graphql.NewList(mediaType),
