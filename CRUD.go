@@ -27,7 +27,7 @@ var medias = []Media{
 	{
 		ID:   1,
 		Name: "media_flag",
-		Type: "Look at the ldap server at port 80. Can you somehow extract the data inside it? Hint 1: the login username is autofilled for you. Hint 2: google is your best friend.",
+		Type: "Look at the ldap server at port 80. Can you somehow extract the data inside it? Hint : google is your best friend.",
 	},
 	{
 		ID:   2,
